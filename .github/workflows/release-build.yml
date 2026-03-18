@@ -1,0 +1,127 @@
+name: Build Electron Base Project
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag (example: v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+      release_name:
+        description: 'Release title shown on GitHub'
+        required: true
+        default: 'Electron Base Project v1.0.0'
+      prerelease:
+        description: 'Mark as prerelease'
+        required: true
+        default: false
+        type: boolean
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+      # Keep unsigned builds stable across CI unless signing secrets are configured.
+      CSC_IDENTITY_AUTO_DISCOVERY: false
+      # Optional signing/notarization secrets (set in repository settings if needed).
+      CSC_LINK: ${{ secrets.CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build Windows
+        if: runner.os == 'Windows'
+        run: npm run build:win
+
+      - name: Build macOS
+        if: runner.os == 'macOS'
+        run: npm run build:mac
+
+      - name: Build Linux (CI targets)
+        if: runner.os == 'Linux'
+        run: npm run build:linux:ci
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ runner.os }}-artifacts
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.yml
+            dist/*.blockmap
+          if-no-files-found: warn
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Generate release notes
+        run: |
+          cat > RELEASE_NOTES.md <<'EOF'
+          ## Electron Base Project
+
+          Automated cross-platform build from GitHub Actions.
+
+          ### Included installers
+
+          - Windows: `.exe`
+          - macOS: `.dmg`
+          - Linux: `.AppImage`, `.deb`
+
+          ### Build metadata
+
+          - Commit: `${{ github.sha }}`
+          - Workflow: `${{ github.workflow }}`
+          - Run ID: `${{ github.run_id }}`
+          EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag || github.ref_name }}
+          name: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_name || format('Electron Base Project {0}', github.ref_name) }}
+          body_path: RELEASE_NOTES.md
+          prerelease: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.prerelease || false }}
+          generate_release_notes: true
+          files: release-assets/**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

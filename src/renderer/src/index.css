@@ -1,0 +1,38 @@
+@import 'tailwindcss';
+
+:root {
+  --background: 39 100% 98%;
+  --foreground: 220 28% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 28% 10%;
+  --border: 220 20% 88%;
+  --ring: 22 96% 53%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: hsl(var(--foreground));
+  background:
+    radial-gradient(circle at 10% 10%, rgba(251, 191, 36, 0.35), transparent 40%),
+    radial-gradient(circle at 90% 20%, rgba(251, 146, 60, 0.18), transparent 30%),
+    linear-gradient(160deg, #fffdf7 0%, #fff7ed 70%, #fffbeb 100%);
+  font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
