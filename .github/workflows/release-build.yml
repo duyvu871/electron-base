@@ -33,6 +33,10 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     env:
+      # App env variables (aligned with .env.example)
+      DATABASE_URL: ${{ secrets.DATABASE_URL || 'file:./dev.db' }}
+      VITE_APP_ENV: production
+      VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL || 'https://api.example.com' }}
       # Keep unsigned builds stable across CI unless signing secrets are configured.
       CSC_IDENTITY_AUTO_DISCOVERY: false
       # Optional signing/notarization secrets (set in repository settings if needed).
@@ -46,29 +50,49 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+          cache: pnpm
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate CI env files
+        shell: bash
+        run: |
+          cat > .env <<EOF
+          DATABASE_URL="${DATABASE_URL}"
+          VITE_APP_ENV=${VITE_APP_ENV}
+          VITE_API_BASE_URL=${VITE_API_BASE_URL}
+          EOF
+
+          cat > .env.production <<EOF
+          DATABASE_URL="${DATABASE_URL}"
+          VITE_APP_ENV=${VITE_APP_ENV}
+          VITE_API_BASE_URL=${VITE_API_BASE_URL}
+          EOF
 
       - name: Typecheck
-        run: npm run typecheck
+        run: pnpm run typecheck
 
       - name: Build Windows
         if: runner.os == 'Windows'
-        run: npm run build:win
+        run: pnpm run build:win
 
       - name: Build macOS
         if: runner.os == 'macOS'
-        run: npm run build:mac
+        run: pnpm run build:mac
 
       - name: Build Linux (CI targets)
         if: runner.os == 'Linux'
-        run: npm run build:linux:ci
+        run: pnpm run build:linux:ci
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

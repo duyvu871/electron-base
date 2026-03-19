@@ -12,6 +12,17 @@ files:
 asar: true
 asarUnpack:
   - resources/**
+  - node_modules/better-sqlite3/**
+  - node_modules/bindings/**
+  - node_modules/file-uri-to-path/**
+  - node_modules/.pnpm/bindings@*/node_modules/bindings/**
+  - node_modules/.pnpm/file-uri-to-path@*/node_modules/file-uri-to-path/**
+  - '**/*.node'
+extraResources:
+  - from: drizzle
+    to: drizzle
+    filter:
+      - '**/*'
 win:
   executableName: electron-base-project
 nsis:
@@ -38,4 +49,4 @@ linux:
   category: Utility
 appImage:
   artifactName: ${name}-${version}.${ext}
-npmRebuild: false
+npmRebuild: true

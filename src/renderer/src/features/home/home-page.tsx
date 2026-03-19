@@ -31,9 +31,9 @@ export const HomePage: FC = () => {
                 category: 'core'
             },
             {
-                title: 'Prisma Documentation',
-                description: 'Prisma ORM, schema design and client usage.',
-                url: 'https://www.prisma.io/docs',
+                title: 'Drizzle ORM Documentation',
+                description: 'Type-safe SQL schema, query builder and migrations.',
+                url: 'https://orm.drizzle.team/docs/overview',
                 category: 'db'
             },
             {

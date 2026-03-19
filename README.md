@@ -17,7 +17,7 @@ A clean Electron + React + TypeScript base project with strict engineering rules
 ## Setup
 
 ```bash
-npm install
+pnpm install
 ```
 
 ## Environment
@@ -33,37 +33,41 @@ Required variables:
 
 - `VITE_APP_ENV` (`development` | `production`)
 - `VITE_API_BASE_URL` (valid API base URL)
+- `DATABASE_URL` (SQLite connection string, format `file:./dev.db`)
 
 Mode behavior:
 
-- `npm run dev` loads development env
-- `npm run build` loads production env
+- `pnpm run dev` loads development env
+- `pnpm run build` loads production env
 - Production Electron window disables DevTools
 
 ### First-run Database Init
 
-On first app launch, Electron main process checks whether table `AppSetting` exists.
-If missing, it initializes the required table/index automatically.
+On app startup, Electron main process runs Drizzle migrations automatically.
+In development, migrations are read from project `drizzle/`.
+In packaged app, migrations are loaded from `resources/drizzle`.
 
-## Prisma (No Rust Engine)
+## Drizzle + SQLite (Electron-first)
 
-This project uses Prisma with JavaScript engine mode for lighter Electron packaging:
+This project uses Drizzle ORM with `better-sqlite3`, following Electron best practices:
 
-- `engineType = "client"` in `prisma/schema.prisma`
-- SQLite adapter: `@prisma/adapter-better-sqlite3`
-- No Prisma Rust query engine binaries in app bundle
+- DB layer stays in `src/main/db` (renderer never opens DB directly)
+- Runtime DB path defaults to `app.getPath('userData')/app.db` in production
+- `drizzle.config.ts` defines schema and migration output
+- `electron-builder` copies `drizzle/` into app resources for runtime migration
 
 Useful commands:
 
 ```bash
-npm run prisma:generate
-npm run prisma:db:push
+pnpm run db:generate
+pnpm run db:migrate
+pnpm run db:studio
 ```
 
 ## Development
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 ### Linux Runtime Notes
@@ -72,62 +76,33 @@ If you see logs like `IBUS-WARNING` or `GetVSyncParametersIfAvailable() failed`,
 
 ```bash
 # Default Linux-safe mode
-npm run dev:linux:safe
+pnpm run dev:linux:safe
 
 # Software rendering fallback for unstable GPU drivers
-npm run dev:linux:software
+pnpm run dev:linux:software
 
 # Disable ibus integration warning path (input method fallback)
-npm run dev:linux:no-ibus
+pnpm run dev:linux:no-ibus
 ```
 
 ## Quality Gate
 
 ```bash
-npm run lint
-npm run typecheck
+pnpm run lint
+pnpm run typecheck
 ```
 
 ## Build
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 ## Build On GitHub Actions
 
-Workflow file: `.github/workflows/release-build.yml`
+For full CI/CD guide (workflow triggers, secrets, `.env` upload commands, and release flow), see:
 
-Trigger modes:
-
-- Manual: run `Build Electron Base Project` from GitHub Actions UI
-- Tag push: push `v*` tag (example: `v1.0.0`) to auto build and publish release
-
-### Required Secrets
-
-- `GITHUB_TOKEN` (provided by GitHub automatically)
-
-### Optional Signing Secrets
-
-- `CSC_LINK`
-- `CSC_KEY_PASSWORD`
-- `APPLE_ID`
-- `APPLE_APP_SPECIFIC_PASSWORD`
-- `APPLE_TEAM_ID`
-
-If signing secrets are not provided, workflow still builds unsigned artifacts.
-
-### Release Flow
-
-1. Trigger by either:
-   - running workflow manually from GitHub Actions, or
-   - pushing a `v*` tag
-2. If running manually, fill inputs:
-   - `release_tag` (example: `v1.0.0`)
-   - `release_name` (example: `Electron Base Project v1.0.0`)
-   - `prerelease` (`true` or `false`)
-3. GitHub Actions builds Windows/macOS/Linux installers
-4. Workflow creates GitHub Release page and attaches all generated files
+- `docs/github-actions-guide.md`
 
 ## Documentation
 

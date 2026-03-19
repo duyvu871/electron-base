@@ -2,8 +2,8 @@ import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { BrowserWindow, app, ipcMain, shell } from 'electron'
 import { join } from 'path'
 
+import { closeDatabase, getDatabaseHealth, initializeDatabase } from './db'
 import icon from '../../resources/icon.png?asset'
-import { disconnectDatabase, getAppSetting, initializeDatabase, setAppSetting } from './db'
 
 if (process.platform === 'linux') {
     // Allow forcing ozone backend from environment for distro-specific issues.
@@ -77,24 +77,16 @@ const createWindow = (): void => {
 
 app.whenReady().then(() => {
     electronApp.setAppUserModelId('com.example.electronbaseproject')
+    initializeDatabase()
 
     app.on('browser-window-created', (_, window) => {
         optimizer.watchWindowShortcuts(window)
     })
 
     ipcMain.handle('app:get-version', () => app.getVersion())
+    ipcMain.handle('app:get-db-health', () => getDatabaseHealth())
     ipcMain.handle('app:open-external', async (_event, url: string) => {
         await shell.openExternal(url)
-    })
-    ipcMain.handle('app-settings:get', async (_event, key: string) => {
-        return getAppSetting(key)
-    })
-    ipcMain.handle('app-settings:set', async (_event, key: string, value: string) => {
-        await setAppSetting(key, value)
-    })
-
-    void initializeDatabase().catch((error: unknown) => {
-        console.error('Database initialization failed:', error)
     })
 
     createWindow()
@@ -107,9 +99,11 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
-    void disconnectDatabase()
-
     if (process.platform !== 'darwin') {
         app.quit()
     }
+})
+
+app.on('before-quit', () => {
+    closeDatabase()
 })

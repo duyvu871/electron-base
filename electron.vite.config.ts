@@ -8,7 +8,13 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     resolve: {
       alias: {
-        '@shared': resolve('src/shared')
+        '@shared': resolve('src/shared'),
+        '@generated': resolve('src/generated')
+      }
+    },
+    build: {
+      rollupOptions: {
+        external: []
       }
     }
   },
@@ -23,6 +29,7 @@ export default defineConfig({
       alias: {
         '@renderer': resolve('src/renderer/src'),
         '@shared': resolve('src/shared'),
+        '@generated': resolve('src/generated'),
         '@': resolve('src/renderer/src')
       }
     },
