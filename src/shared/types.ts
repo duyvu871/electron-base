@@ -1,4 +1,4 @@
 export type AppConfig = {
-    appName: string
-    version: string
+  appName: string
+  version: string
 }
